@@ -5,7 +5,7 @@ import time
 import pickle
 
 # Load the XGBoost model using pickle
-model_path = "model/xgb.pkl"
+model_path = "model/xgb_model.pkl"  # Update with your actual path
 xgb_model = pickle.load(open(model_path, "rb"))
 
 # Map values for dropdowns
@@ -91,4 +91,66 @@ if tab_selector == "Single Prediction":
 elif tab_selector == "Multi Prediction":
     st.header("User Input (Multi Prediction)")
 
-    # ... (rest of the code remains unchanged)
+    # Create a layout similar to a sidebar
+    col1, col2 = st.beta_columns([1, 2])
+
+    # Input elements in the first column
+    with col1:
+        st.write("Upload a CSV file containing multiple rows of input data.")
+        uploaded_file = st.file_uploader("Choose a file", type="csv")
+
+    # Prediction for Multi Prediction in the second column
+    with col2:
+        if st.button("Predict (Multi)"):
+            if uploaded_file is not None:
+                # Read the CSV file
+                uploaded_df = pd.read_csv(uploaded_file)
+
+                # Map categorical values to numerical
+                uploaded_df["Sex"] = uploaded_df["Sex"].map(sex_mapping)
+                uploaded_df["Chest pain type"] = uploaded_df["Chest pain type"].map(cp_mapping)
+                uploaded_df["Fasting blood sugar"] = uploaded_df["Fasting blood sugar"].map(fbs_mapping)
+                uploaded_df["Resting electrocardiographic results"] = uploaded_df["Resting electrocardiographic results"].map(restecg_mapping)
+                uploaded_df["Exercise induced angina"] = uploaded_df["Exercise induced angina"].map(exang_mapping)
+
+                # Ensure the DataFrame has the correct columns and order based on the model
+                # Adjust this part based on your model input requirements
+                input_columns = ["Age", "Sex", "Chest pain type", "Resting blood pressure", "Serum cholestoral", "Fasting blood sugar",
+                                 "Resting electrocardiographic results", "Maximum heart rate achieved", "Exercise induced angina", "ST depression"]
+                uploaded_df = uploaded_df[input_columns]
+
+                # Predict
+                predictions = xgb_model.predict(uploaded_df)
+
+                bar = st.progress(0)
+                status_text = st.empty()
+
+                for i in range(1, 101):
+                    status_text.text(f"{i}% complete")
+                    bar.progress(i)
+                    time.sleep(0.01)
+                    if i == 100:
+                        time.sleep(1)
+                        status_text.empty()
+                        bar.empty()
+
+                result_arr = []
+                for prediction in predictions:
+                    if prediction == 0:
+                        result = "Healthy"
+                    elif prediction == 1:
+                        result = "Heart disease level 1"
+                    elif prediction == 2:
+                        result = "Heart disease level 2"
+                    elif prediction == 3:
+                        result = "Heart disease level 3"
+                    elif prediction == 4:
+                        result = "Heart disease level 4"
+                    result_arr.append(result)
+
+                uploaded_result = pd.DataFrame({'Prediction Result': result_arr})
+
+                st.write("Multi Prediction Results:")
+                st.write(uploaded_result)
+            else:
+                st.write("Please upload a CSV file for multi-prediction.")
