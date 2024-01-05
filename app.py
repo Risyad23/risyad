@@ -17,6 +17,14 @@ exang_mapping = {"No": 0, "Yes": 1}
 
 # Streamlit UI
 st.title("Heart Disease Prediction")
+sidebar_style = """
+    <style>
+        .sidebar .sidebar-content {
+            width: 80%;
+        }
+    </style>
+"""
+st.markdown(sidebar_style, unsafe_allow_html=True)
 
 # Tabs for single prediction and multi-prediction
 tab_selector = st.sidebar.radio("Select Prediction Mode", ["Single Prediction", "Multi Prediction"])
@@ -57,7 +65,7 @@ if tab_selector == "Single Prediction":
     })
 
     # Prediction for Single Prediction
-    if st.sidebar.button("Predict (Single)"):
+    if st.sidebar.button("Predict"):
         prediction = xgb_model.predict(input_data)[0]
 
         bar = st.progress(0)
