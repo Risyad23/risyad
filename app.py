@@ -26,13 +26,6 @@ st.set_page_config(
 st.markdown(
     """
     <style>
-    .stApp {
-        background-color: #f4f4f4;
-    }
-    .stSidebar {
-        background-color: #333333;
-        color: #ffffff;
-    }
     .st-hv {
         color: #ff6347 !important;
     }
