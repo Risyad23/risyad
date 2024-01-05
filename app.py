@@ -1,96 +1,85 @@
-# Saya akan membuat aplikasi prediksi penyakit jantung menggunakan machine learning
-# dan di deploy menggunakan streamlit
-
-# Import library yang dibutuhkan
-from sklearn.model_selection import train_test_split
 import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn import datasets
 
+# Load the model
+model_path = "path/to/your/knn_model.pkl"
+with open(model_path, 'rb') as file:
+    model = pickle.load(file)
+
+# Helper function for prediction
+def predict_heart_disease(inputs):
+    predictions = model.predict(inputs)
+    return predictions
+
+# Streamlit UI
 st.title("Heart Disease Prediction")
 
-st.write("""
-Aplikasi ini dapat memprediksi apakah seseorang terkena penyakit jantung atau tidak
-""")
+# Tabs for single prediction and multi-prediction
+tab_selector = st.sidebar.radio("Select Prediction Mode", ["Single Prediction", "Multi Prediction"])
 
-st.sidebar.header("User Input Features")
+if tab_selector == "Single Prediction":
+    st.sidebar.header("User Input (Single Prediction)")
 
-# Fungsi untuk mengambil input dari user
+    age = st.sidebar.number_input("Age", min_value=0, max_value=100, value=30)
+    sex = st.sidebar.radio("Sex", ["Male", "Female"])
+    cp = st.sidebar.selectbox("Chest Pain Type", ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"])
+    trestbps = st.sidebar.number_input("Resting Blood Pressure (mm Hg)", min_value=50, max_value=200, value=120)
+    chol = st.sidebar.number_input("Serum Cholesterol (mg/dL)", min_value=50, max_value=600, value=200)
+    fbs = st.sidebar.radio("Fasting Blood Sugar > 120 mg/dL", ["No", "Yes"])
+    restecg = st.sidebar.selectbox("Resting Electrocardiographic Results", ["Normal", "Abnormal", "Hypertrophy"])
+    thalach = st.sidebar.number_input("Maximum Heart Rate Achieved", min_value=70, max_value=200, value=150)
+    exang = st.sidebar.radio("Exercise Induced Angina", ["No", "Yes"])
+    oldpeak = st.sidebar.number_input("ST Depression Induced by Exercise", min_value=0.0, max_value=10.0, value=0.0)
 
+    # Predict button for single prediction
+    if st.sidebar.button("Predict (Single)"):
+        sex = 1 if sex == "Male" else 0
+        cp_mapping = {"Typical Angina": 0, "Atypical Angina": 1, "Non-anginal Pain": 2, "Asymptomatic": 3}
+        fbs = 1 if fbs == "Yes" else 0
+        restecg_mapping = {"Normal": 0, "Abnormal": 1, "Hypertrophy": 2}
+        exang = 1 if exang == "Yes" else 0
 
-def user_input_features():
-    age = int(st.sidebar.number_input("Age: "))
-    sex = int(st.sidebar.selectbox("Sex: ", (0, 1)))
-    cp = int(st.sidebar.selectbox("chest pain type: ", (0, 1, 2, 3)))
-    trestbps = int(st.sidebar.number_input("resting blood pressure: "))
-    chol = int(st.sidebar.number_input("serum cholestoral in mg/dl: "))
-    fbs = int(st.sidebar.selectbox("fasting blood sugar: ", (0, 1)))
-    restecg = int(st.sidebar.selectbox(
-        "Masukan resting electrocardiographic results: ", (0, 1, 2)))
-    thalach = int(st.sidebar.number_input(
-        "Masukan maximum heart rate achieved: "))
-    exang = int(st.sidebar.selectbox(
-        "Masukan exercise induced angina: ", (0, 1)))
-    oldpeak = int(st.sidebar.number_input("oldpeak: "))
-    slope = int(st.sidebar.selectbox(
-        "Masukan the slope of the peak exercise ST segment: ", (0, 1, 2)))
-    ca = int(st.sidebar.selectbox(
-        "Masukan number of major vessels: ", (0, 1, 2, 3)))
-    thal = int(st.sidebar.selectbox("thal: ", (0, 1, 2, 3)))
+        input_data = np.array([[age, sex, cp_mapping[cp], trestbps, chol, fbs, restecg_mapping[restecg], thalach, exang, oldpeak]])
+        prediction = predict_heart_disease(input_data)
 
-    data = {"age": age,
-            "sex": sex,
-            "cp": cp,
-            "trestbps": trestbps,
-            "chol": chol,
-            "fbs": fbs,
-            "restecg": restecg,
-            "thalach": thalach,
-            "exang": exang,
-            "oldpeak": oldpeak,
-            "slope": slope,
-            "ca": ca,
-            "thal": thal}
+        st.write("Single Prediction Result:")
+        st.write(prediction)
 
-    features = pd.DataFrame(data, index=[0])
-    return features
+elif tab_selector == "Multi Prediction":
+    st.sidebar.header("User Input (Multi Prediction)")
 
+    st.sidebar.write("Upload a CSV file containing multiple rows of input data.")
+    uploaded_file = st.sidebar.file_uploader("Choose a file", type="csv")
 
-df = user_input_features()
+    # Predict button for multi-prediction
+    if st.sidebar.button("Predict (Multi)"):
+        if uploaded_file is not None:
+            # Read the CSV file
+            uploaded_df = pd.read_csv(uploaded_file)
 
-heart_dataset = pd.read_csv("datsets/hungarian.data")
+            # Ensure the DataFrame has the correct column names and data types
+            # Adjust this part based on your input requirements
+            uploaded_df["Sex"] = uploaded_df["Sex"].map({"Male": 1, "Female": 0})
+            uploaded_df["Chest Pain Type"] = uploaded_df["Chest Pain Type"].map({"Typical Angina": 0, "Atypical Angina": 1, "Non-anginal Pain": 2, "Asymptomatic": 3})
+            uploaded_df["Fasting Blood Sugar > 120 mg/dL"] = uploaded_df["Fasting Blood Sugar > 120 mg/dL"].map({"No": 0, "Yes": 1})
+            uploaded_df["Resting Electrocardiographic Results"] = uploaded_df["Resting Electrocardiographic Results"].map({"Normal": 0, "Abnormal": 1, "Hypertrophy": 2})
+            uploaded_df["Exercise Induced Angina"] = uploaded_df["Exercise Induced Angina"].map({"No": 0, "Yes": 1})
 
-heart = df.copy()
+            # Ensure the DataFrame has the correct columns and order based on the model
+            # Adjust this part based on your model input requirements
+            input_columns = ["Age", "Sex", "Chest Pain Type", "Resting Blood Pressure (mm Hg)", "Serum Cholesterol (mg/dL)", "Fasting Blood Sugar > 120 mg/dL",
+                             "Resting Electrocardiographic Results", "Maximum Heart Rate Achieved", "Exercise Induced Angina", "ST Depression Induced by Exercise"]
+            uploaded_df = uploaded_df[input_columns]
 
-st.write(df)
+            # Predict
+            predictions = predict_heart_disease(uploaded_df.values)
 
-# Menyiapkan data latih dan target
-X = heart_dataset.drop(columns=["target"])
-y = heart_dataset["target"]
-
-# Memisaahkan data latih dan data uji
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42)
-
-# Membuat model KNN
-model = KNeighborsClassifier(n_neighbors=3)
-knn = model.fit(X_train, y_train)
-
-# prediksi dengan algoritma KNN
-btn = st.button("Prediksi")
-
-if btn:
-    # Memeriksa apakah semua nilai input adalah 0
-    if df.values.sum() == 0:
-        st.write("Silahkan masukan nilai input terlebih dahulu")
-    else:
-        # Melakukan prediksi
-        prediksi = knn.predict(df)
-        # Menampilkan hasil prediksi
-        if prediksi == 0:
-            st.write("Anda tidak terkena penyakit jantung")
+            st.write("Multi Prediction Results:")
+            st.write(predictions)
         else:
-            st.write("Anda terkena penyakit jantung")
+            st.write("Please upload a CSV file for multi-prediction.")
+
+# You can customize the layout and styling further based on your preferences.
