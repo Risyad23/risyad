@@ -1,146 +1,85 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import itertools
 import pickle
 from sklearn.neighbors import KNeighborsClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-
-# Load the dataset
-@st.cache
-def load_data():
-    with open("dataset/hungarian.data", encoding='Latin1') as file:
-        lines = [line.strip() for line in file]
-
-    data = itertools.takewhile(
-        lambda x: len(x) == 76,
-        (' '.join(lines[i:(i + 10)]).split() for i in range(0, len(lines), 10))
-    )
-
-    df = pd.DataFrame.from_records(data)
-    df = df.iloc[:, :-1]
-    df = df.drop(df.columns[0], axis=1)
-    df = df.astype(float)
-
-    df.replace(-9.0, np.NaN, inplace=True)
-
-    df_selected = df.iloc[:, [1, 2, 7, 8, 10, 14, 17, 30, 36, 38, 39, 42, 49, 56]]
-
-    column_mapping = {
-        2: 'age',
-        3: 'sex',
-        8: 'cp',
-        9: 'trestbps',
-        11: 'chol',
-        15: 'fbs',
-        18: 'restecg',
-        31: 'thalach',
-        37: 'exang',
-        39: 'oldpeak',
-        40: 'slope',
-        43: 'ca',
-        50: 'thal',
-        57: 'num'
-    }
-
-    df_selected.rename(columns=column_mapping, inplace=True)
-
-    columns_to_drop = ['ca', 'slope', 'thal']
-    df_selected = df_selected.drop(columns_to_drop, axis=1)
-
-    meanTBPS = df_selected['trestbps'].dropna()
-    # ...
-
-    fill_values = {
-        'trestbps': meanTBPS,
-        'chol': meanChol,
-        'fbs': meanfbs,
-        'thalach': meanthalach,
-        'exang': meanexang,
-        'restecg': meanRestCG
-    }
-
-    df_clean = df_selected.fillna(value=fill_values)
-    df_clean.drop_duplicates(inplace=True)
-
-    X = df_clean.drop("num", axis=1)
-    y = df_clean['num']
-
-    return X, y
-
 
 # Load the model
-@st.cache
-def load_model():
-    return pickle.load(open("model/hungarian_heart.pkl", 'rb'))
+model_path = "model/hungarian_heart.pkl"
+with open(model_path, 'rb') as file:
+    model = pickle.load(file)
 
+# Helper function for prediction
+def predict_heart_disease(inputs):
+    predictions = model.predict(inputs)
+    return predictions
 
-# Main function
-def main():
-    st.set_page_config(
-        page_title="Heart Disease Prediction",
-        page_icon=":heart:"
-    )
+# Streamlit UI
+st.title("Heart Disease Prediction")
 
-    st.title("Heart Disease Prediction App")
-    st.sidebar.header("User Input")
+# Tabs for single prediction and multi-prediction
+tab_selector = st.sidebar.radio("Select Prediction Mode", ["Single Prediction", "Multi Prediction"])
 
-    X, y = load_data()
-    model = load_model()
+if tab_selector == "Single Prediction":
+    st.sidebar.header("User Input (Single Prediction)")
 
-    age = st.sidebar.number_input("Age", X['age'].min(), X['age'].max())
-    sex = st.sidebar.selectbox("Sex", ["Male", "Female"])
-    # ... (similar for other features)
+    age = st.sidebar.number_input("Age", min_value=0, max_value=100, value=30)
+    sex = st.sidebar.radio("Sex", ["Male", "Female"])
+    cp = st.sidebar.selectbox("Chest Pain Type", ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"])
+    trestbps = st.sidebar.number_input("Resting Blood Pressure (mm Hg)", min_value=50, max_value=200, value=120)
+    chol = st.sidebar.number_input("Serum Cholesterol (mg/dL)", min_value=50, max_value=600, value=200)
+    fbs = st.sidebar.radio("Fasting Blood Sugar > 120 mg/dL", ["No", "Yes"])
+    restecg = st.sidebar.selectbox("Resting Electrocardiographic Results", ["Normal", "Abnormal", "Hypertrophy"])
+    thalach = st.sidebar.number_input("Maximum Heart Rate Achieved", min_value=70, max_value=200, value=150)
+    exang = st.sidebar.radio("Exercise Induced Angina", ["No", "Yes"])
+    oldpeak = st.sidebar.number_input("ST Depression Induced by Exercise", min_value=0.0, max_value=10.0, value=0.0)
 
-    if sex == "Male":
-        sex_val = 1
-    else:
-        sex_val = 0
+    # Predict button for single prediction
+    if st.sidebar.button("Predict (Single)"):
+        sex = 1 if sex == "Male" else 0
+        cp_mapping = {"Typical Angina": 0, "Atypical Angina": 1, "Non-anginal Pain": 2, "Asymptomatic": 3}
+        fbs = 1 if fbs == "Yes" else 0
+        restecg_mapping = {"Normal": 0, "Abnormal": 1, "Hypertrophy": 2}
+        exang = 1 if exang == "Yes" else 0
 
-    # ... (similar mapping for other features)
+        input_data = np.array([[age, sex, cp_mapping[cp], trestbps, chol, fbs, restecg_mapping[restecg], thalach, exang, oldpeak]])
+        prediction = predict_heart_disease(input_data)
 
-    # User input as a DataFrame
-    user_input = pd.DataFrame({
-        'age': [age],
-        'sex': [sex_val],
-        # ... (similar for other features)
-    })
+        st.write("Single Prediction Result:")
+        st.write(prediction)
 
-    # Display User Input
-    st.subheader("User Input:")
-    st.write(user_input)
+elif tab_selector == "Multi Prediction":
+    st.sidebar.header("User Input (Multi Prediction)")
 
-    # Make Prediction
-    if st.button("Predict"):
-        prediction = model.predict(user_input)[0]
+    st.sidebar.write("Upload a CSV file containing multiple rows of input data.")
+    uploaded_file = st.sidebar.file_uploader("Choose a file", type="csv")
 
-        st.subheader("Prediction Result:")
-        if prediction == 0:
-            st.success("Healthy")
-        elif prediction == 1:
-            st.warning("Heart disease level 1")
-        elif prediction == 2:
-            st.warning("Heart disease level 2")
-        elif prediction == 3:
-            st.error("Heart disease level 3")
-        elif prediction == 4:
-            st.error("Heart disease level 4")
+    # Predict button for multi-prediction
+    if st.sidebar.button("Predict (Multi)"):
+        if uploaded_file is not None:
+            # Read the CSV file
+            uploaded_df = pd.read_csv(uploaded_file)
 
-    # Model Performance Metrics
-    st.sidebar.subheader("Model Performance Metrics")
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-    y_pred = model.predict(X_test)
+            # Ensure the DataFrame has the correct column names and data types
+            # Adjust this part based on your input requirements
+            uploaded_df["Sex"] = uploaded_df["Sex"].map({"Male": 1, "Female": 0})
+            uploaded_df["Chest Pain Type"] = uploaded_df["Chest Pain Type"].map({"Typical Angina": 0, "Atypical Angina": 1, "Non-anginal Pain": 2, "Asymptomatic": 3})
+            uploaded_df["Fasting Blood Sugar > 120 mg/dL"] = uploaded_df["Fasting Blood Sugar > 120 mg/dL"].map({"No": 0, "Yes": 1})
+            uploaded_df["Resting Electrocardiographic Results"] = uploaded_df["Resting Electrocardiographic Results"].map({"Normal": 0, "Abnormal": 1, "Hypertrophy": 2})
+            uploaded_df["Exercise Induced Angina"] = uploaded_df["Exercise Induced Angina"].map({"No": 0, "Yes": 1})
 
-    accuracy = accuracy_score(y_test, y_pred)
-    st.sidebar.text(f"Accuracy: {accuracy:.2%}")
+            # Ensure the DataFrame has the correct columns and order based on the model
+            # Adjust this part based on your model input requirements
+            input_columns = ["Age", "Sex", "Chest Pain Type", "Resting Blood Pressure (mm Hg)", "Serum Cholesterol (mg/dL)", "Fasting Blood Sugar > 120 mg/dL",
+                             "Resting Electrocardiographic Results", "Maximum Heart Rate Achieved", "Exercise Induced Angina", "ST Depression Induced by Exercise"]
+            uploaded_df = uploaded_df[input_columns]
 
-    # ... (you can display other metrics like confusion matrix, classification report, etc.)
+            # Predict
+            predictions = predict_heart_disease(uploaded_df.values)
 
-    # Display Dataset
-    if st.checkbox("Show Dataset"):
-        st.subheader("Heart Disease Dataset")
-        st.write(pd.concat([X, y], axis=1))
+            st.write("Multi Prediction Results:")
+            st.write(predictions)
+        else:
+            st.write("Please upload a CSV file for multi-prediction.")
 
-if __name__ == "__main__":
-    main()
+# You can customize the layout and styling further based on your preferences.
