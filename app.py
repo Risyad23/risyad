@@ -5,7 +5,7 @@ import time
 import pickle
 
 # Load the XGBoost model using pickle
-model_path = "model/xgb_model.pkl"  # Update with your actual path
+model_path = "model/xgb.pkl"  # Update with your actual path
 xgb_model = pickle.load(open(model_path, "rb"))
 
 # Map values for dropdowns
