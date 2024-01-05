@@ -35,18 +35,29 @@ if tab_selector == "Single Prediction":
     oldpeak = st.sidebar.number_input("ST Depression Induced by Exercise", min_value=0.0, max_value=10.0, value=0.0)
 
     # Predict button for single prediction
-    if st.sidebar.button("Predict (Single)"):
-        sex = 1 if sex == "Male" else 0
-        cp_mapping = {"Typical Angina": 0, "Atypical Angina": 1, "Non-anginal Pain": 2, "Asymptomatic": 3}
-        fbs = 1 if fbs == "Yes" else 0
-        restecg_mapping = {"Normal": 0, "Abnormal": 1, "Hypertrophy": 2}
-        exang = 1 if exang == "Yes" else 0
+    # Predict button for single prediction
+if st.sidebar.button("Predict (Single)"):
+    sex = 1 if sex == "Male" else 0
+    cp_mapping = {"Typical Angina": 0, "Atypical Angina": 1, "Non-anginal Pain": 2, "Asymptomatic": 3}
+    fbs = 1 if fbs == "Yes" else 0
+    restecg_mapping = {"Normal": 0, "Abnormal": 1, "Hypertrophy": 2}
+    exang = 1 if exang == "Yes" else 0
 
-        input_data = np.array([[age, sex, cp_mapping[cp], trestbps, chol, fbs, restecg_mapping[restecg], thalach, exang, oldpeak]])
-        prediction = predict_heart_disease(input_data)
+    input_data = np.array([[age, sex, cp_mapping[cp], trestbps, chol, fbs, restecg_mapping[restecg], thalach, exang, oldpeak]])
+    
+    # Debug prints
+    st.write("Debug - Input Data:")
+    st.write(input_data)
 
-        st.write("Single Prediction Result:")
-        st.write(prediction)
+    prediction = predict_heart_disease(input_data)
+
+    # Debug prints
+    st.write("Debug - Raw Prediction:")
+    st.write(prediction)
+
+    st.write("Single Prediction Result:")
+    st.write(prediction)
+
 
 elif tab_selector == "Multi Prediction":
     st.sidebar.header("User Input (Multi Prediction)")
