@@ -5,7 +5,7 @@ import pickle
 from sklearn.neighbors import KNeighborsClassifier
 
 # Load the model
-model_path = "path/to/your/knn_model.pkl"
+model_path = "model/hungarian_heart.pkl"
 with open(model_path, 'rb') as file:
     model = pickle.load(file)
 
