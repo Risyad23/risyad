@@ -5,7 +5,7 @@ import time
 import pickle
 
 # Load the XGBoost model using pickle
-model_path = "model/xgb.pkl" 
+model_path = "model/xgb.pkl"
 xgb_model = pickle.load(open(model_path, "rb"))
 
 # Map values for dropdowns
@@ -15,6 +15,54 @@ fbs_mapping = {"False": 0, "True": 1}
 restecg_mapping = {"Normal": 0, "Having ST-T wave abnormality": 1, "Showing left ventricular hypertrophy": 2}
 exang_mapping = {"No": 0, "Yes": 1}
 
+# Set page configuration
+st.set_page_config(
+    page_title="Heart Disease Prediction App",
+    page_icon=":heart:",
+    layout="wide",
+)
+
+# Custom CSS styling
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background-color: #f4f4f4;
+    }
+    .stSidebar {
+        background-color: #333333;
+        color: #ffffff;
+    }
+    .st-hv {
+        color: #ff6347 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Custom Streamlit style
+st.markdown(
+    """
+    <style>
+    .single-widget {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    .multi-widget {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # Streamlit UI
 st.title("Heart Disease Prediction")
 
@@ -23,6 +71,7 @@ tab_selector = st.radio("Select Prediction Mode", ["Single Prediction", "Multi P
 
 if tab_selector == "Single Prediction":
     st.header("User Input (Single Prediction)")
+    st.markdown('<div class="single-widget">', unsafe_allow_html=True)
 
     age = st.number_input("Age", min_value=29, max_value=77, value=44)
     sex_sb = st.selectbox("Sex", ["Male", "Female"])
@@ -88,8 +137,11 @@ if tab_selector == "Single Prediction":
         st.subheader("Prediction:")
         st.subheader(result)
 
+    st.markdown("</div>", unsafe_allow_html=True)
+
 elif tab_selector == "Multi Prediction":
     st.header("User Input (Multi Prediction)")
+    st.markdown('<div class="multi-widget">', unsafe_allow_html=True)
 
     # Create a layout similar to a sidebar
     col1, col2 = st.beta_columns([1, 2])
@@ -150,7 +202,10 @@ elif tab_selector == "Multi Prediction":
 
                 uploaded_result = pd.DataFrame({'Prediction Result': result_arr})
 
-                st.write("Multi Prediction Results:")
-                st.write(uploaded_result)
+                st.subheader("Multi Prediction Results:")
+                st.dataframe(uploaded_result)
+
             else:
                 st.write("Please upload a CSV file for multi-prediction.")
+
+    st.markdown("</div>", unsafe_allow_html=True)
